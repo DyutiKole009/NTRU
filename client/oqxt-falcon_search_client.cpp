@@ -1936,8 +1936,8 @@ int EDB_Search(unsigned char *query_str, int NWords, int socket_fd)
         */
        size_t xtoken_size = 32*N_max_id_words;
        send_all(socket_fd, reinterpret_cast<unsigned char*>(XToken), xtoken_size);
-       cout<<"[CLIENT] Sent XToken = ";
-       printMemoryNibbles(XToken, xtoken_size);
+       //cout<<"[CLIENT] Sent XToken = ";
+       //printMemoryNibbles(XToken, xtoken_size);
        
        //  XTAG Computation  //
         ::memset(XTAG,0x00, N_max_id_words*N_l);
@@ -2188,8 +2188,17 @@ int main()
             std::cerr << "Malformed line in input.txt at iteration " << q_idx << std::endl;
             continue;
         }
-	query.push_back(kw_a_str);
-	query.push_back(kw_b_str);
+
+	int kw_id_a = std::stoi(kw_a_str);
+        int kw_id_b = std::stoi(kw_b_str);
+
+        std::stringstream hex_a, hex_b;
+        hex_a << std::uppercase << std::setfill('0') << std::setw(8) << std::hex << kw_id_a;
+        hex_b << std::uppercase << std::setfill('0') << std::setw(8) << std::hex << kw_id_b;
+
+        query.push_back(hex_a.str());
+        query.push_back(hex_b.str());
+
 
         if(query.size() < n_q_kw) continue;
 
