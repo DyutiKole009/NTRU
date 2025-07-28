@@ -146,7 +146,6 @@ void printMemoryNibbles(const void* address, size_t k) {
 
     std::cout << std::dec << std::endl;
 }
-////////////////////////////////////////////////////////////////
 
 #define TEMPALLOC
 #define CRYPTO_SECRETKEYBYTES   1281
@@ -598,25 +597,10 @@ int N_max_id_words = 1809;
 int N_kw_id_max = 80901;
 int N_threads = 1;
 
-
-//RawDB_test.csv
-// int N_keywords = 5;
-// int N_max_ids = 37;
-// int N_row_ids = N_max_ids;
-// int N_words = N_keywords;
-// int N_kw_id_pairs = 42;             
-// int N_max_id_words = N_kw_id_pairs;
-// int N_threads = 1;
-
-
-
-
 int sym_block_size = N_threads*16;
 int hash_block_size = N_threads*64;
 int bhash_block_size = N_threads*64;
 int bhash_in_block_size = N_threads*40;
-
-
 
 //IVs and Keys for AES-256 GCM encryption
 unsigned char iv_ki[16], iv_r[16], iv_ke[16];
@@ -920,9 +904,6 @@ static inline uint32_t mq_montymul_large(uint32_t x, uint32_t y) {
     if (z >= p_l_dash) {
         z -= p_l_dash;
     }
-
-	// printf("z = %d", (z));
-	// printf("\n");
 
     return (uint32_t)z;
 }
@@ -1248,16 +1229,6 @@ mq_poly_sub(uint16_t *f, const uint16_t *g, unsigned logn)
 	}
 }
 
-
-// void
-// Zf(to_ntt_monty)(uint16_t *h, unsigned logn)
-// {
-// 	mq_NTT(h, logn);
-// 	mq_poly_tomonty(h, logn);
-// }
-
-
-
 void
 Zf(to_ntt_monty_large)(uint32_t *h, unsigned logn)
 {
@@ -1279,43 +1250,12 @@ uint32_t scale_to_bits(uint32_t val, uint32_t current_bits, uint32_t target_bits
 }
 
 
-
-// uint32_t round(uint32_t a, uint32_t x_bits, uint32_t y_bits) {
-//     if (x_bits <= y_bits) {
-//         return a; // No rounding needed
-//     }
-
-//     uint32_t shift_amount = x_bits - y_bits;
-//     uint32_t bias = 1U << (shift_amount - 1); // Add half of 2^shift_amount for rounding
-//     uint32_t rounded_val = (a + bias) >> shift_amount; // Right shift with rounding
-//     return rounded_val & ((1U << y_bits) - 1); // Ensure it fits in y_bits range
-// }
-
-
 uint32_t round(uint32_t x, uint32_t q_bits, uint32_t p_bits) {
 
 	float q = pow(2,q_bits);
 	float p = pow(2,p_bits);
 	return fmod((p * x) / (q), p);
 }
-
-
-// void reduce_mod_phi(ZZ_pX& poly) {
-//     int degree_poly = deg(poly);
-//     if (degree_poly < 512) {
-//         return;  // No reduction needed
-//     }
-
-//     for (int i = 512; i <= degree_poly; ++i) {
-//         ZZ_p coeff_i = coeff(poly, i);  // Get the coefficient of X^i
-//         ZZ_p lower_coeff = coeff(poly, i - 512); // Get the coefficient of X^(i-512)
-//         SetCoeff(poly, i - 512, lower_coeff + coeff_i); // Add to X^(i-512)
-//         SetCoeff(poly, i, ZZ_p(0)); // Zero out the coefficient of X^i
-//     }
-//     poly.normalize();  // Clean up trailing zero coefficients
-// }
-
-
 
 void reduce_mod_phi(ZZX& poly, const ZZ& modulus, int reduction_degree) {
     long degree_poly = deg(poly);  // Degree of the polynomial
@@ -1821,10 +1761,7 @@ int EDB_Search(unsigned char *query_str, int NWords, int socket_fd)
 
     unsigned char *local_s;
 
-
-
     ::memcpy(Q1,query_str,16);
-
     
     TSet_GetTag(Q1,stag);
 
@@ -1838,8 +1775,6 @@ int EDB_Search(unsigned char *query_str, int NWords, int socket_fd)
     cout<<"[CLIENT] Sent stag = ";
     printMemoryNibbles(stag, stag_size);
 
-
-
     // TSet_Retrieve(stag,tset_row,&n_ids_tset);
 
     /* 
@@ -1850,16 +1785,12 @@ int EDB_Search(unsigned char *query_str, int NWords, int socket_fd)
 
     for now we would make the server directly send the n_ids_test to the client. this is not a part of the actual protocol, need to make sure whether this breaks any security. i think it should not break any security
 
-
-
-
     therefore,
     receive n_ids_test from server
     
     */
     size_t n_ids_tset_size = sizeof(n_ids_tset);
     recv_all(socket_fd, (unsigned char*)&n_ids_tset, n_ids_tset_size);
-    //////////////////////////////////////////////////
     
     cout << "N IDs TSet: " << n_ids_tset << endl;
     //Copy all query keywords except first
@@ -1868,82 +1799,13 @@ int EDB_Search(unsigned char *query_str, int NWords, int socket_fd)
     w_local = W;
 
     auto start_time = std::chrono::high_resolution_clock::now();
-
-    
-    // Generate random mask for each keyword
-    /*unsigned char r[16];
-	int c = 0;
-    for(unsigned int nword=0; nword<n_ids_tset; nword++)
-    {
-        int kr = encrypt(Q1, sizeof(Q1)/sizeof(Q1[0]), aad, sizeof(aad), KZ1, iv_kz, r, tag_kz);
-    }
-
-    uint32_t temp = r;
-    memcpy(&temp, r, sizeof(uint32_t));
-
-    srand(temp);
-    uint16_t mask = (rand()%p_l);
-    
-    int32_t x, y;
-    int32_t gcd = extended_gcd(mask, p_l, x, y);
-    if (gcd != 1) {
-        mask += 1;
-    }
-
-	
-    uint16_t inv_mask = mod_inverse(mask,p_l);
-
-	if((mask * inv_mask)%p_l == 1){
-		c++;
-	}	
-	else{	
-		mask = (rand()%p_l);
-
-		int32_t x, y;
-		int32_t gcd = extended_gcd(mask, p_l, x, y);
-		
-		if (gcd != 1) {
-			mask += 1;
-		}
-
-		inv_mask = mod_inverse(mask,p_l);
-		if((mask * inv_mask)%p_l == 1){
-			c++;
-		}
-	}*/
-
     
     tset_row_local = tset_row;
     tset_yid_local = tset_yid;
     ec_local = EC;
 
-    /*for(int i=0; i<n_ids_tset; i++){
-
-        ::memcpy(tset_yid_local,tset_row_local,(N_l*2));
-        ::memcpy(ec_local,tset_row_local+(N_l*2),16);
-
-
-        tset_row_local += datasize;
-        tset_yid_local += (N_l*2);
-        ec_local += 16;
-    }
-
-
-    yid_local = YID;           
-    tset_yid_local = tset_yid; 
-    for(int n = 0; n < n_ids_tset; n++) {
-        for(int k = 0; k < N_l; k++) {
-            yid_local[k] = static_cast<int16_t>(tset_yid_local[2*k]) | (static_cast<int16_t>(tset_yid_local[2*k + 1]) << 8);
-		}
-        yid_local += N_l;             
-        tset_yid_local += 2 * N_l; 
-    }*/
-
     yid_local = YID;          
     tset_yid_local = tset_yid;
-
-
-
     
     /* Key Generation */
 
@@ -1959,8 +1821,6 @@ int EDB_Search(unsigned char *query_str, int NWords, int socket_fd)
     inner_shake256_context sc_keygen;
     fpr *expanded_key;             
 
-    
-    // std::memcpy(seed,r_local,16);
     inner_shake256_init(&sc_keygen);
     inner_shake256_inject(&sc_keygen, seed, sizeof(seed));
     inner_shake256_flip(&sc_keygen);
@@ -2084,120 +1944,11 @@ int EDB_Search(unsigned char *query_str, int NWords, int socket_fd)
 
         int16_t tt_yid[512];
         int16_t yid_temp[512];
-		uint32_t tt_yid_large[512];
+	uint32_t tt_yid_large[512];
 
+        if(NWords == 0){}
 
-	/*for (int u = 0; u < N_l; u ++) {
-            uint32_t w;
-            w = (uint32_t)yid_local[u];
-            w += q_l & - (w >> 31);
-            yid_temp[u] = (uint16_t)w;
-        }
-
-        for(int i=0; i<512; i++){
-            tt_yid[i] = (yid_temp[i] * mask) % p_l; 
-			// tt_yid_large[i] = tt_yid[i];	
-		}*/
-///////////////////////////////////////////////////////
-
-
-
-        if(NWords == 0){
-	    /*::memcpy(ec_local,ECE,16);
-            ec_local +=16;
-            ++nmatch;*/
-      }
-
-        else {
-
-	    /*xtag_local = XTAG;
-            xtoken_local = XToken;
-            for(unsigned int n1=0; n1<NWords; ++n1) 
-            { 
-				ZZ p1 = power2_ZZ(40);
-
-				ZZX yid_NTL, xtoken_NTL, xtag_NTL_temp, xtag_NTL;
-
-				for(int i=0; i<512; i++){
-					SetCoeff(yid_NTL,i,ZZ(tt_yid[i]));
-					SetCoeff(xtoken_NTL,i,ZZ(xtoken_local[i]));
-					
-				}
-				
-
-				xtag_NTL_temp = yid_NTL * xtoken_NTL;
-				for(int i=0; i<=deg(xtag_NTL_temp); i++){ 
-					int64_t x = conv<int64_t>((coeff(xtag_NTL_temp, i)));
-					x = x % p_l_dash;
-					SetCoeff(xtag_NTL_temp, i, x);
-				}
-				reduce_mod_phi(xtag_NTL_temp, p1, N_l);
-				
-
-				for(int i = 0; i <= deg(xtag_NTL_temp); i++){
-					xtag_local[i] = conv<int64_t>((coeff(xtag_NTL_temp, i)));
-					xtag_local[i] = xtag_local[i] >> (40 - 5);
-					xtag_local[i] = xtag_local[i] % p;
-					SetCoeff(xtag_NTL_temp, i, xtag_local[i]);
-				}
-				
-				
-                xtoken_local += N_l;
-                xtag_local += N_l;
-        
-            }
-            xtoken_local = XToken;
-            xtag_local = XTAG;
-
-
-            for(int i=0; i<NWords; ++i){
-
-                ::memset(bhash,0x00,bhash_block_size);
-
-                unsigned char xtag_char[2*N_l];
-                ::memset(xtag_char,0x00,2*N_l);
-
-
-                unsigned char *xtag_char_local = xtag_char;
-                for(int k=0; k<N_l; k++){
-                    xtag_char[2*k] = static_cast<unsigned char>(xtag_local[k] & 0xFF);          
-                    xtag_char[2*k + 1] = static_cast<unsigned char>((xtag_local[k] >> 8) & 0xFF); 
-
-                }
-                
-                xtag_char_local = xtag_char;
-
-                BLOOM_HASH(xtag_char,bhash);
-
-				xtag_file_handle << DB_HexToStr_N(bhash,bhash_block_size) << endl << endl;
-
-
-                for(int j=0;j<N_HASH;++j){
-                    bf_n_indices[j][i] = BFIdxConv(bhash+(64*j),N_BF_BITS);
-
-					xtag_file_handle_check << bf_n_indices[j][i] << " ";
-                }
-
-				xtag_file_handle_check << endl << endl;
-
-                xtag_local += N_l;
-            }
-
-            xtag_local = XTAG;
-
-            BloomFilter_Match_N(BF, bf_n_indices, NWords, &idx_in_set);
-
-			cout << idx_in_set << endl;
-
-
-            if(idx_in_set){
-               ::memcpy(ec_local,ECE,16);
-                ec_local +=16;
-                nmatch++;
-	    }*/
-
-
-        }
+        else {}
 
         ec_local += 16;
         w_local += 16;
@@ -2210,8 +1961,6 @@ int EDB_Search(unsigned char *query_str, int NWords, int socket_fd)
     ec_local = EC;
     w_local = W;
 
-
-    ////////////////////////////////////////////////////
     // server's job should end here
 
     /*
@@ -2235,14 +1984,8 @@ int EDB_Search(unsigned char *query_str, int NWords, int socket_fd)
 	printMemoryNibbles(EC + (i * 16), 16);
 	}
 
-
-
-///////////////////////////////////////////////////////
-    
     cout << "Nmatch: " << nmatch << endl;
 
-    
-    
     unsigned char KE[32];
     unsigned char KE_temp[16];
     unsigned char dec_pt[16*N_max_id_words];
@@ -2330,8 +2073,6 @@ int main()
     UIDX = new unsigned char[16*N_max_ids];
     ::memset(UIDX,0x00,16*N_max_ids);
     
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////
-    
     std::map<std::string, unsigned int> kw_frequency;
     std::vector<std::string> keyword_vec;
     std::vector<std::string> query;
@@ -2359,13 +2100,12 @@ int main()
     std::string kw;
     std::string kw_freq_str;
 
-	//----------------------------------------------------------------------------------------------
+    //----------------------------------------------------------------------------------------------
 
-    // kw_freq_file_handle.open(kw_freq_file,std::ios_base::in);
     widxdb_row.clear();
     raw_row_data.clear();
 
-	// CONNECTION VARIABLES ----------------------------------------------------------------------------------------------
+    // CONNECTION VARIABLES ----------------------------------------------------------------------------------------------
     int sockfd;
 	struct sockaddr_in serv_addr;
 	char s_ip[]="127.0.0.1";
@@ -2394,12 +2134,9 @@ int main()
         kw_frequency[kw] = std::stoi(kw_freq_str);
         keyword_vec.push_back(kw);
     }
-
-//////////////////////////////////////////////////////////////////////////////
     
     srand(time(NULL));
 
-   
     Sys_Init();
     
     std::cout << "Reading Bloom Filter from disk..." << std::endl;
@@ -2451,16 +2188,8 @@ int main()
             std::cerr << "Malformed line in input.txt at iteration " << q_idx << std::endl;
             continue;
         }
-
-        int kw_id_a = std::stoi(kw_a_str);
-	int kw_id_b = std::stoi(kw_b_str);
-
-	std::stringstream hex_a, hex_b;
-	hex_a << std::uppercase << std::setfill('0') << std::setw(8) << std::hex << kw_id_a;
-	hex_b << std::uppercase << std::setfill('0') << std::setw(8) << std::hex << kw_id_b;
-
-	query.push_back(hex_a.str());
-	query.push_back(hex_b.str());
+	query.push_back(kw_a_str);
+	query.push_back(kw_b_str);
 
         if(query.size() < n_q_kw) continue;
 
