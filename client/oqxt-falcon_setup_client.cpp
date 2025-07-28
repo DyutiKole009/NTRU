@@ -597,25 +597,10 @@ int N_max_id_words = 1809;
 int N_kw_id_max = 80901;
 int N_threads = 1;
 
-
-//RawDB_test.csv
-// int N_keywords = 5;
-// int N_max_ids = 37;
-// int N_row_ids = N_max_ids;
-// int N_words = N_keywords;
-// int N_kw_id_pairs = 42;             
-// int N_max_id_words = N_kw_id_pairs;
-// int N_threads = 1;
-
-
-
-
 int sym_block_size = N_threads*16;
 int hash_block_size = N_threads*64;
 int bhash_block_size = N_threads*64;
 int bhash_in_block_size = N_threads*40;
-
-
 
 //IVs and Keys for AES-256 GCM encryption
 unsigned char iv_ki[16], iv_r[16], iv_ke[16];
@@ -867,48 +852,6 @@ mq_montymul(uint32_t x, uint32_t y)
 	z += p_l & - (z >> 31);
 	return z;
 }
-
-
-// static inline uint32_t
-// mq_montymul_large(uint32_t x, uint32_t y)
-// {
-// 	uint32_t z, w;
-
-// 	/*
-// 	 * We compute x*y + k*q with a value of k chosen so that the 16
-// 	 * low bits of the result are 0. We can then shift the value.
-// 	 * After the shift, result may still be larger than q, but it
-// 	 * will be lower than 2*q, so a conditional subtraction works.
-// 	 */
-
-// 	z = x * y;
-// 	printf("z = %d", (z));
-// 	printf("\n");
-// 	w = ((z * Q0I_large) & 0xFFFF) * p_l_dash;
-// 	printf("w = %d", (w));
-// 	printf("\n");
-
-// 	/*
-// 	 * When adding z and w, the result will have its low 16 bits
-// 	 * equal to 0. Since x, y and z are lower than q, the sum will
-// 	 * be no more than (2^15 - 1) * q + (q - 1)^2, which will
-// 	 * fit on 29 bits.
-// 	 */
-	
-// 	z = (z + w) >> 16;
-
-// 	/*
-// 	 * After the shift, analysis shows that the value will be less
-// 	 * than 2q. We do a subtraction then conditional subtraction to
-// 	 * ensure the result is in the expected range.
-// 	 */
-// 	z -= p_l_dash;
-// 	z += p_l_dash & - (z >> 31);
-// 	// printf("z = %d", (z));
-// 	// printf("\n");
-// 	return z;
-// }
-
 
 static inline uint32_t mq_montymul_large(uint32_t x, uint32_t y) {
     uint64_t z, w;
@@ -1289,72 +1232,12 @@ uint32_t scale_to_bits(uint32_t val, uint32_t current_bits, uint32_t target_bits
     return val << scale_factor;
 }
 
-
-
-// uint32_t round(uint32_t a, uint32_t x_bits, uint32_t y_bits) {
-//     if (x_bits <= y_bits) {
-//         return a; // No rounding needed
-//     }
-
-//     uint32_t shift_amount = x_bits - y_bits;
-//     uint32_t bias = 1U << (shift_amount - 1); // Add half of 2^shift_amount for rounding
-//     uint32_t rounded_val = (a + bias) >> shift_amount; // Right shift with rounding
-//     return rounded_val & ((1U << y_bits) - 1); // Ensure it fits in y_bits range
-
-// }
-
-// uint32_t round(uint32_t x, uint32_t q_bits, uint32_t p_bits) {
-
-// 	float q = pow(2,q_bits);
-// 	float p = pow(2,p_bits);
-// 	return fmod((p * x) / (q), p);
-// }
-
-
 uint64_t round(uint64_t x, uint32_t q_bits, uint32_t p_bits) {
     uint64_t q = 1ULL << q_bits;  
     uint64_t p = 1ULL << p_bits;  
 
     return ((p * x) / q) % p;
 }
-
-
-// void reduce_mod_phi(ZZ_pX& poly) {
-//     int degree_poly = deg(poly);
-//     if (degree_poly < 512) {
-//         return;  // No reduction needed
-//     }
-
-//     for (int i = 512; i <= degree_poly; ++i) {
-//         ZZ_p coeff_i = coeff(poly, i);  // Get the coefficient of X^i
-//         ZZ_p lower_coeff = coeff(poly, i - 512); // Get the coefficient of X^(i-512)
-//         SetCoeff(poly, i - 512, lower_coeff + coeff_i); // Add to X^(i-512)
-//         SetCoeff(poly, i, ZZ_p(0)); // Zero out the coefficient of X^i
-//     }
-//     poly.normalize();  // Clean up trailing zero coefficients
-// }
-
-// void reduce_mod_phi(ZZX& poly, const ZZ& modulus, int reduction_degree) {
-//     int degree_poly = deg(poly);  // Degree of the polynomial
-//     if (degree_poly < reduction_degree) {
-//         return;  // No reduction is needed if degree is below the reduction threshold
-//     }
-
-//     // Iterate through coefficients starting from the degree of the polynomial
-//     for (int i = reduction_degree; i <= degree_poly; ++i) {
-//         ZZ coeff_i = coeff(poly, i);               // Coefficient of X^i
-//         ZZ lower_coeff = coeff(poly, i - reduction_degree); // Coefficient of X^(i-reduction_degree)
- 
-//         // Combine coefficients
-//         ZZ new_lower_coeff = (lower_coeff + coeff_i) % modulus;
-
-//         // Update the coefficients in the polynomial
-//         SetCoeff(poly, i - reduction_degree, new_lower_coeff); // Update X^(i-reduction_degree)
-//         SetCoeff(poly, i, ZZ(0));  // Set the coefficient of X^i to 0
-//     }
-
-//     poly.normalize();  // Clean up trailing zero coefficients
-// }
 
 void reduce_mod_phi(ZZX& poly, const ZZ& modulus, int reduction_degree) {
     long degree_poly = deg(poly);  // Degree of the polynomial
@@ -1372,9 +1255,6 @@ void reduce_mod_phi(ZZX& poly, const ZZ& modulus, int reduction_degree) {
 
     poly.normalize();  // Ensure no trailing zeros
 }
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 int SHA3_HASH(blake3_hasher *hasher,unsigned char *msg, unsigned char *digest)
@@ -1446,8 +1326,7 @@ int TSet_SetUp(int socket_fd)
     
     N_words = (N_max_ids/N_threads) + ((N_max_ids%N_threads==0)?0:1);
     N_max_id_words = N_words * N_threads;
-
-    // auto redis = Redis("tcp://127.0.0.1:6379");
+	
     /*
     
     client wont be doing anything with redis
@@ -1481,7 +1360,6 @@ int TSet_SetUp(int socket_fd)
 
     ifstream eidxdb_file_handle;
     eidxdb_file_handle.open(eidxdb_file,ios_base::in|ios_base::binary);
-	//actually this is not needed
 
     stringstream ss;
 
@@ -1532,7 +1410,6 @@ int TSet_SetUp(int socket_fd)
     */
     
     send_all(socket_fd, (unsigned char*)&n_rows, sizeof(n_rows));
-///////////////////////////////////////////////////
 
     for(int n=0;n<n_rows;++n){
 
@@ -1562,14 +1439,12 @@ int TSet_SetUp(int socket_fd)
                 n_row_ids++;
             }
         }
-		////////////////////////////////////////////
-		/*
+	/*
         
         send n_row_ids over to server
         
         */
         send_all(socket_fd, (unsigned char*)&n_row_ids, sizeof(n_row_ids));
-/////////////////////////////////////////////////
 
         ss.clear();
         ss.seekg(0);
@@ -1665,17 +1540,9 @@ int TSet_SetUp(int socket_fd)
             db_in_val.clear();
             db_in_key = HexToStr(TBIDX,2) + HexToStr(TJIDX,2) + HexToStr(TLBL,12);
             db_in_val = HexToStr(TVAL,datasize+1);
-            
-			///////////////////////////////////////
-			//redis.set(db_in_key.data(), db_in_val.data());
-			/*
-            
-            send the key, value pair to server, who would write them to its redis db
-
-            */
+           
             send_all(socket_fd, (unsigned char*)db_in_key.data(), 32);
             send_all(socket_fd, (unsigned char*)db_in_val.data(), 2082);
-			///////////////////////////////////////////////
 			
             tw_local += datasize;
             total_count++;
@@ -1772,7 +1639,6 @@ int32_t mod_inverse(uint32_t value, uint32_t mod) {
 int main()   
 {
 
-    //////////////////////////////////////////////////////////////////////////
     // CONNECTION VARIABLES ----------------------------------------------------------------------------------------------
     int sockfd;
         struct sockaddr_in serv_addr;
@@ -1802,7 +1668,6 @@ int main()
     else{
         cout << "Connection established with server ..." << endl; 
     }
-    /////////////////////////////////////////////////////////////////////////////
 
 
     unsigned char *W;
@@ -1828,8 +1693,6 @@ int main()
 
     uint16_t *YID;
 
-
-    ///////////////////////////////////////////////////////////////////
     
     W = new unsigned char[16];                                              //Holds the keyword 16B
     ID = new unsigned char[N_max_id_words*16];                              //Maximum number of IDs in a row 16B
@@ -1838,11 +1701,7 @@ int main()
     WC = new unsigned char[N_max_id_words*16];                              //IDs with counter value (for computing randomness R) 
     EC = new unsigned char[N_max_id_words*16];                              //Encrypted IDs
     bhash = new unsigned char[bhash_block_size];
-    
-    // XTAG = new uint32_t[N_max_id_words*N_l];
-	// XTAG_check = new uint32_t[N_max_id_words*N_l];
-	// XTOKEN = new uint32_t[N_max_id_words*N_l];
-
+ 
 	XTAG = new uint64_t[N_max_id_words*N_l];
 	XTAG_check = new uint64_t[N_max_id_words*N_l];
 	XTOKEN = new uint64_t[N_max_id_words*N_l];
@@ -1889,11 +1748,8 @@ int main()
     ::memset(ID,0x00,N_max_id_words*16);
     ::memset(KE,0x00,EVP_MAX_BLOCK_LENGTH);
     ::memset(KE_temp,0x00,16);
-	
-    // ::memset(XTAG,0x00,N_max_id_words*N_l);
-	// ::memset(XTAG_check,0x00,N_max_id_words*N_l);
-	// ::memset(XTOKEN,0x00,N_max_id_words*N_l);
 
+	
 	::memset(XTAG,0x00,N_max_id_words*N_l);
 	::memset(XTAG_check,0x00,N_max_id_words*N_l);
 	::memset(XTOKEN,0x00,N_max_id_words*N_l);
@@ -1914,10 +1770,6 @@ int main()
     unsigned char *id_local = ID;
     unsigned char *ke_local = KE;
     unsigned char *ke_temp_local = KE_temp;
-    
-    // uint32_t *xtag_local = XTAG;
-	// uint32_t *xtag_local_check = XTAG_check;
-	// uint32_t *xtoken_local = XTOKEN;
 
 	uint64_t *xtag_local = XTAG;
 	uint64_t *xtag_local_check = XTAG_check;
@@ -2217,13 +2069,6 @@ int main()
 
 			xid_NTL = tt_s1_NTL + tt_xid_NTL;
 
-
-			// if(s2h_NTL != xid_NTL){
-			// 	cout << "NO" << endl;
-			// 	exit(1);
-			// }
-			
-
             for(int i = 0; i < 512; i++){
                 tt_s2_temp[i] = tt_s2[i];
                 yid_local[i] = (tt_s2[i] * inv_mask) % p_l;		// store masked s2 in yid
@@ -2469,16 +2314,12 @@ int main()
     std::cout << "Writing Bloom Filter to disk..." << std::endl;
     BloomFilter_WriteBFtoFile(bloomfilter_file, BF); //Store bloom filter in file
 
-    ////////////////////////////////////////////////////////////////////////////////////////
     send_file(sockfd, bloomfilter_file.data());
-    ///////////////////////////////////////////////////////////////////////////////////////
 
 
     Sys_Clear();
-
-    ////////////////////////////////////////////////////////////////////////////////////////
+    
     close(sockfd);
-    ////////////////////////////////////////////////////////////////////////////////////////
 
     
     auto time_elapsed = chrono::duration_cast<chrono::microseconds>(stop_time - start_time).count();
@@ -2487,4 +2328,3 @@ int main()
     
     return 0;
 }   
-
