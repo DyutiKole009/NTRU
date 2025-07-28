@@ -576,7 +576,6 @@ static const uint32_t iGMb_large[] = {
 };
 
 
-// string rawdb_file = "RawDB_test.csv";
 string rawdb_file = "db6k.dat";
 string eidxdb_file = "EDB_test.csv";
 string bloomfilter_file = "bloom_filter.dat";
@@ -596,18 +595,6 @@ int N_words = N_keywords;
 int N_max_id_words = 1809;
 int N_kw_id_max = 80901;
 int N_threads = 1;
-
-
-//RawDB_test.csv
-// int N_keywords = 5;
-// int N_max_ids = 37;
-// int N_row_ids = N_max_ids;
-// int N_words = N_keywords;
-// int N_kw_id_pairs = 42;             
-// int N_max_id_words = N_kw_id_pairs;
-// int N_threads = 1;
-
-
 
 
 int sym_block_size = N_threads*16;
@@ -749,8 +736,6 @@ mq_add(uint32_t x, uint32_t y)
 	 */
 	uint32_t d;
 
-	// d = x + y - q_l;
-	// d += q_l & -(d >> 31);
     d = x + y - p_l;
 	d += p_l & -(d >> 31);
 	return d;
@@ -861,46 +846,11 @@ mq_montymul(uint32_t x, uint32_t y)
 	 * than 2q. We do a subtraction then conditional subtraction to
 	 * ensure the result is in the expected range.
 	 */
-	// z -= q_l;
-	// z += q_l & -(z >> 31);
     z -= p_l;
 	z += p_l & - (z >> 31);
 	return z;
 }
 
-
-// static inline uint32_t
-// mq_montymul_large(uint32_t x, uint32_t y)
-// {
-// 	uint32_t z, w;
-
-// 	/*
-// 	 * We compute x*y + k*q with a value of k chosen so that the 16
-// 	 * low bits of the result are 0. We can then shift the value.
-// 	 * After the shift, result may still be larger than q, but it
-// 	 * will be lower than 2*q, so a conditional subtraction works.
-// 	 */
-
-// 	z = x * y;
-// 	w = ((z * Q0I_large) & 0xFFFF) * p_l_dash;
-
-// 	/*
-// 	 * When adding z and w, the result will have its low 16 bits
-// 	 * equal to 0. Since x, y and z are lower than q, the sum will
-// 	 * be no more than (2^15 - 1) * q + (q - 1)^2, which will
-// 	 * fit on 29 bits.
-// 	 */
-// 	z = (z + w) >> 16;
-
-// 	/*
-// 	 * After the shift, analysis shows that the value will be less
-// 	 * than 2q. We do a subtraction then conditional subtraction to
-// 	 * ensure the result is in the expected range.
-// 	 */
-// 	z -= p_l_dash;
-// 	z += p_l_dash & -(z >> 31);
-// 	return z;
-// }
 
 static inline uint32_t mq_montymul_large(uint32_t x, uint32_t y) {
     uint64_t z, w;
@@ -919,9 +869,6 @@ static inline uint32_t mq_montymul_large(uint32_t x, uint32_t y) {
     if (z >= p_l_dash) {
         z -= p_l_dash;
     }
-
-	// printf("z = %d", (z));
-	// printf("\n");
 
     return (uint32_t)z;
 }
@@ -1278,42 +1225,12 @@ uint32_t scale_to_bits(uint32_t val, uint32_t current_bits, uint32_t target_bits
 }
 
 
-
-// uint32_t round(uint32_t a, uint32_t x_bits, uint32_t y_bits) {
-//     if (x_bits <= y_bits) {
-//         return a; // No rounding needed
-//     }
-
-//     uint32_t shift_amount = x_bits - y_bits;
-//     uint32_t bias = 1U << (shift_amount - 1); // Add half of 2^shift_amount for rounding
-//     uint32_t rounded_val = (a + bias) >> shift_amount; // Right shift with rounding
-//     return rounded_val & ((1U << y_bits) - 1); // Ensure it fits in y_bits range
-// }
-
-
 uint32_t round(uint32_t x, uint32_t q_bits, uint32_t p_bits) {
 
 	float q = pow(2,q_bits);
 	float p = pow(2,p_bits);
 	return fmod((p * x) / (q), p);
 }
-
-
-// void reduce_mod_phi(ZZ_pX& poly) {
-//     int degree_poly = deg(poly);
-//     if (degree_poly < 512) {
-//         return;  // No reduction needed
-//     }
-
-//     for (int i = 512; i <= degree_poly; ++i) {
-//         ZZ_p coeff_i = coeff(poly, i);  // Get the coefficient of X^i
-//         ZZ_p lower_coeff = coeff(poly, i - 512); // Get the coefficient of X^(i-512)
-//         SetCoeff(poly, i - 512, lower_coeff + coeff_i); // Add to X^(i-512)
-//         SetCoeff(poly, i, ZZ_p(0)); // Zero out the coefficient of X^i
-//     }
-//     poly.normalize();  // Clean up trailing zero coefficients
-// }
-
 
 
 void reduce_mod_phi(ZZX& poly, const ZZ& modulus, int reduction_degree) {
@@ -1332,10 +1249,6 @@ void reduce_mod_phi(ZZX& poly, const ZZ& modulus, int reduction_degree) {
 
     poly.normalize();  // Ensure no trailing zeros
 }
-
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 
 int SHA3_HASH(blake3_hasher *hasher,unsigned char *msg, unsigned char *digest)
@@ -1576,7 +1489,6 @@ int TSet_Retrieve(unsigned char *stag,unsigned char *tset_row, int *n_ids_tset)
 ////////////////////////////////////////////////////////////////////////////////
         for(unsigned int ni=0;ni<N_threads;++ni){
             ::memcpy(local_t_bidx,hashout_local,2);
-	    //cout<<endl<<"loop..1"<<endl;
 
             freeb_idx = ((local_t_bidx[1] << 8) + local_t_bidx[0]);
 
@@ -1828,8 +1740,8 @@ int EDB_Search(unsigned char *query_str, int NWords, int socket_fd)
     ::memcpy(Q1,query_str,16);
 	size_t stag_size = 16;
    recv_all(socket_fd, stag, stag_size);
-   cout<<"Stag recvd = ";
-   printMemoryNibbles(stag, stag_size);
+   //cout<<"Stag recvd = ";
+   //printMemoryNibbles(stag, stag_size);
 
 
     /*
@@ -1928,62 +1840,6 @@ int EDB_Search(unsigned char *query_str, int NWords, int socket_fd)
     }
     yid_local = YID;
     tset_yid_local = tset_yid;
-    
-    //////////////////////////////////////////////////////////////////////////////////////////
-
-    
-    //Key Generation 
-
-    /*unsigned char seed[16] = {0x56,0x37,0xca,0x94,0xd5,0xe0,0xad,0x62,0x73,0x7c,0xba,0x48,0x8d,0x2d,0x4d,0xde};
-    size_t n_keygen;
-    size_t tlen_keygen = 90112;
-    size_t tlen_sign = 178176;
-    unsigned logn_keygen = 9;
-    int8_t *f, *g, *F, *G;
-    uint16_t *h, *hm, *h2, *hm2, *h_mont;
-    int16_t *sig_keygen, *s1_keygen;
-    uint8_t *tt_keygen, *tt_sign, *temp_sign;
-    inner_shake256_context sc_keygen;
-    fpr *expanded_key;             
-
-    
-    // std::memcpy(seed,r_local,16);
-    inner_shake256_init(&sc_keygen);
-    inner_shake256_inject(&sc_keygen, seed, sizeof(seed));
-    inner_shake256_flip(&sc_keygen);
-    
-
-    temp_sign = xmalloc(tlen_sign);
-    h_mont = (uint16_t *)temp_sign;
-    n_keygen = (size_t)1 << logn_keygen;
-
-    f = xmalloc(tlen_keygen);
-    g = f + n_keygen;
-    F = g + n_keygen;
-    G = F + n_keygen;
-    h = (uint16_t *)(G + n_keygen);
-    h2 = h + n_keygen;
-    hm = h2 + n_keygen;
-    sig_keygen = (int16_t *)(hm + n_keygen);
-    s1_keygen = sig_keygen + n_keygen;
-    tt_keygen = (uint8_t *)(s1_keygen + n_keygen);
-    tt_sign = (uint8_t *)(s1_keygen + n_keygen);
-    if (logn_keygen == 1) {
-        tt_keygen += 4;
-        tt_sign += 4;
-    }
-    for (int i = 0; i < 12; i ++) {
-        Zf(keygen)(&sc_keygen, f, g, F, G, h, logn_keygen, tt_keygen);
-    }
-
-    // Public key h in NTT-Montgomery Form
-    ::memcpy(h_mont, h, n_keygen * sizeof *h_mont);
-   
-
-	uint16_t h_temp[512];
-	for(int i=0; i<512;i++){
-		h_temp[i] = h_mont[i];
-	}*/
 
     
     yid_local = YID;
@@ -1991,76 +1847,13 @@ int EDB_Search(unsigned char *query_str, int NWords, int socket_fd)
     
     for(int i=0;i<n_ids_tset;++i)
     {
-		
-
-        /*//Generate xtoken
-        xtoken_local = XToken;
-        w_local = W;
-        for(unsigned int n1=0; n1<NWords; ++n1) 
-        {
-            //Generate random polynomial wrt XW from Falcon specifications
-            TEMPALLOC union {
-                uint16_t hm_xw[512];
-            } r_xw;
-            TEMPALLOC inner_shake256_context sc_xw;
-
-            inner_shake256_init(&sc_xw); 		                            
-            inner_shake256_inject(&sc_xw,w_local, 16);	
-            inner_shake256_flip(&sc_xw);
-            Zf(hash_to_point_vartime)(&sc_xw, r_xw.hm_xw, 9);
-
-           
-			uint64_t xw[512];
-			size_t n_xw = (size_t)1 << 9;
-
-			for(int i=0; i<512; i++){
-				xw[i] = (r_xw.hm_xw[i] << 14) % q_l;
-			}
-
-            
-            //Xtoken Computation
-
-			ZZ q = power2_ZZ(45);
-			ZZ p1 = power2_ZZ(40);
-
-			ZZX h_temp_NTL, xw_NTL, xtoken;
-
-			for(int i=0; i<512; i++){ 
-				SetCoeff(h_temp_NTL, i, ZZ(h_temp[i]));
-				SetCoeff(xw_NTL, i, ZZ(xw[i]));
-			}
-
-			xtoken = h_temp_NTL * xw_NTL;
-			for(long i=0; i<=deg(xtoken); i++){ 
-				NTL::ZZ coeff = NTL::coeff(xtoken, i);
-				coeff = (coeff % q + q) % q; 
-				NTL::SetCoeff(xtoken, i, coeff);
-			}
-			reduce_mod_phi(xtoken, q, N_l);
-
-
-			for (size_t i = 0; i < 512; i++) {
-				xtoken_local[i] = conv<int64_t>((coeff(xtoken, i)) >> (45 - 40));
-				xtoken_local[i] = xtoken_local[i] % p_l_dash;
-				SetCoeff(xtoken, i, xtoken_local[i]);
-
-				// xtag_file_handle << xtoken_local[i] << " ";
-			}
-			// xtag_file_handle << endl << endl;
-			// xtag_file_handle_check << xtoken << endl << endl;
-
-
-			
-            xtoken_local += N_l;
-            w_local += 16;
-        }*/
         xtoken_local = XToken;
 
 		size_t xtoken_size = 32*N_max_id_words;
 		recv_all(socket_fd, (unsigned char*)XToken, xtoken_size);
 		/*cout<<"Recvd XToken: = ";
 		printMemoryNibbles(XToken, xtoken_size);*/
-		/////////////////////////////////////////////////
+		
 
         //  XTAG Computation  //
 		
@@ -2076,10 +1869,6 @@ int EDB_Search(unsigned char *query_str, int NWords, int socket_fd)
             w += q_l & - (w >> 31);
             yid_temp[u] = (uint16_t)w;
         }
-		/////////////////////////////////////////////////
-		//yid_local = YID;
-
-////////////////////////////////////////////////////
 
         for(int i=0; i<512; i++){
             tt_yid[i] = (yid_temp[i] * mask) % p_l; 
@@ -2192,10 +1981,7 @@ int EDB_Search(unsigned char *query_str, int NWords, int socket_fd)
     ec_local = EC;
     w_local = W;
 
-    
-    
-    ///////////////////////////////////////////////////
-	// server's job should end here
+    // server's job should end here
 
     /*
     
@@ -2229,54 +2015,6 @@ int EDB_Search(unsigned char *query_str, int NWords, int socket_fd)
     ::memset(KE_temp,0x00,16);
     ::memset(dec_pt,0x00,16*N_max_id_words);
 
-
-    //Generate KE from W and KS
-
-    /* Since each W is 8B output of AES-256 is 16B and KE needs to be 32B to be used as a key, thus we run the loop
-    four times to generate a block of 8B four times and concatenate in KE to form a block of 32B */                            
-    
-    /*for(int i=0; i<4;i++) {
-        ::memset(KE_temp,0x00,16);
-
-        if(!PKCS5_PBKDF2_HMAC_SHA1(KS, strlen(KS),NULL,0,1000,32,KS1))
-        {
-            printf("Error in key generation\n");
-            exit(1);
-        }
-        
-        w_local = W;
-        ke_temp_local = KE_temp;
-        ke = encrypt(w_local, sizeof(w_local)/sizeof(Q1[0]), aad, sizeof(aad), KS1, iv_ks, ke_temp_local, tag_ks);       
-        w_local = W;
-        ke_temp_local = KE_temp;
-
-        ::memcpy(KE+(8*i),KE_temp,0x08);
-
-    }
-
-
-    //AES Decryption of ID using KE
-    const char* KE1 = reinterpret_cast<const char *> (KE);
-    if(!PKCS5_PBKDF2_HMAC_SHA1(KE, strlen(KE),NULL,0,1000,32,KE1))
-    {
-        printf("Error in key generation\n");
-        exit(1);
-    }
-    while(!RAND_bytes(iv_ec,sizeof(iv_ec)));
-
-
-    dec_pt_local = dec_pt;
-    for(int i=0;i<nmatch;++i) {
-
-       int kd = decrypt(UIDX+(16*i), ke, aad, sizeof(aad), tag_ec, KE1, iv_ec, dec_pt_local);
-
-       ::memcpy(EC+(16*i),dec_pt_local,0x16);
-       dec_pt_local += 16;
-    }
-    dec_pt_local = dec_pt;*/
-/////////////////////////////////////////////////////
-    
-    
 
     for(unsigned int i=0;i<N_HASH;++i){
         delete [] bf_n_indices[i];
@@ -2348,7 +2086,6 @@ int main()
     unsigned char row_vec[2048]; //16 bytes * Number of keywords in the query
     int n_vec = 0;
 
-	////////////////////////////////////////////////
 	std::set<std::string> result_temp;
 
 	/*
@@ -2417,8 +2154,6 @@ int main()
         search_stop_time = std::chrono::high_resolution_clock::now();
         search_time_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(search_stop_time - search_start_time).count();
 
-        // std::cout << "Search done!" << std::endl;
-
         result_temp.clear();
         query.clear();
 
@@ -2428,7 +2163,6 @@ int main()
 		
 		*/
 		close(newsockfd); 
-        // cout<<q_idx<<": newsockfd is closed"<<endl;
 
         q_idx++;
     }
