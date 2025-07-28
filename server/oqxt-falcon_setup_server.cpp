@@ -8,7 +8,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-ssize_t recv_all(int sockfd, unsigned char* buffer, size_t length) {                          size_t total_received = 0;                                                                while (total_received < length) {                                                             ssize_t bytes_received = recv(sockfd, buffer + total_received, length - total_received, 0);
+ssize_t recv_all(int sockfd, unsigned char* buffer, size_t length) {                          
+	size_t total_received = 0;                                                                
+	while (total_received < length) {                                                             
+		ssize_t bytes_received = recv(sockfd, buffer + total_received, length - total_received, 0);
         if (bytes_received <= 0) {
             // Connection closed or error
             return bytes_received;
@@ -597,18 +600,6 @@ int N_kw_id_max = 80901;
 int N_threads = 1;
 
 
-//RawDB_test.csv
-// int N_keywords = 5;
-// int N_max_ids = 37;
-// int N_row_ids = N_max_ids;
-// int N_words = N_keywords;
-// int N_kw_id_pairs = 42;             
-// int N_max_id_words = N_kw_id_pairs;
-// int N_threads = 1;
-
-
-
-
 int sym_block_size = N_threads*16;
 int hash_block_size = N_threads*64;
 int bhash_block_size = N_threads*64;
@@ -727,7 +718,6 @@ mq_conv_small(int x)
 	uint32_t y;
 
 	y = (uint32_t)x;
-	// y += q_l & -(y >> 31);
     y += p_l & -(y >> 31);
 	return y;
 }
@@ -748,8 +738,6 @@ mq_add(uint32_t x, uint32_t y)
 	 */
 	uint32_t d;
 
-	// d = x + y - q_l;
-	// d += q_l & -(d >> 31);
     d = x + y - p_l;
 	d += p_l & - (d >> 31);
 	return d;
@@ -786,7 +774,6 @@ mq_sub(uint32_t x, uint32_t y)
 	uint32_t d;
 
 	d = x - y;
-	// d += q_l & -(d >> 31);
     d += p_l & - (d >> 31);
 	return d;
 }
@@ -844,7 +831,6 @@ mq_montymul(uint32_t x, uint32_t y)
 	 */
 
 	z = x * y;
-	// w = ((z * Q0I) & 0xFFFF) * q_l;
     w = ((z * Q0I) & 0xFFFF) * p_l;
 
 	/*
@@ -867,48 +853,6 @@ mq_montymul(uint32_t x, uint32_t y)
 	return z;
 }
 
-
-// static inline uint32_t
-// mq_montymul_large(uint32_t x, uint32_t y)
-// {
-// 	uint32_t z, w;
-
-// 	/*
-// 	 * We compute x*y + k*q with a value of k chosen so that the 16
-// 	 * low bits of the result are 0. We can then shift the value.
-// 	 * After the shift, result may still be larger than q, but it
-// 	 * will be lower than 2*q, so a conditional subtraction works.
-// 	 */
-
-// 	z = x * y;
-// 	printf("z = %d", (z));
-// 	printf("\n");
-// 	w = ((z * Q0I_large) & 0xFFFF) * p_l_dash;
-// 	printf("w = %d", (w));
-// 	printf("\n");
-
-// 	/*
-// 	 * When adding z and w, the result will have its low 16 bits
-// 	 * equal to 0. Since x, y and z are lower than q, the sum will
-// 	 * be no more than (2^15 - 1) * q + (q - 1)^2, which will
-// 	 * fit on 29 bits.
-// 	 */
-	
-// 	z = (z + w) >> 16;
-
-// 	/*
-// 	 * After the shift, analysis shows that the value will be less
-// 	 * than 2q. We do a subtraction then conditional subtraction to
-// 	 * ensure the result is in the expected range.
-// 	 */
-// 	z -= p_l_dash;
-// 	z += p_l_dash & - (z >> 31);
-// 	// printf("z = %d", (z));
-// 	// printf("\n");
-// 	return z;
-// }
-
-
 static inline uint32_t mq_montymul_large(uint32_t x, uint32_t y) {
     uint64_t z, w;
 
@@ -927,12 +871,8 @@ static inline uint32_t mq_montymul_large(uint32_t x, uint32_t y) {
         z -= p_l_dash;
     }
 
-	// printf("z = %d", (z));
-	// printf("\n");
-
     return (uint32_t)z;
 }
-
 
 
 
@@ -1255,16 +1195,6 @@ mq_poly_sub(uint16_t *f, const uint16_t *g, unsigned logn)
 	}
 }
 
-
-// void
-// Zf(to_ntt_monty)(uint16_t *h, unsigned logn)
-// {
-// 	mq_NTT(h, logn);
-// 	mq_poly_tomonty(h, logn);
-// }
-
-
-
 void
 Zf(to_ntt_monty_large)(uint32_t *h, unsigned logn)
 {
@@ -1289,27 +1219,6 @@ uint32_t scale_to_bits(uint32_t val, uint32_t current_bits, uint32_t target_bits
 }
 
 
-
-// uint32_t round(uint32_t a, uint32_t x_bits, uint32_t y_bits) {
-//     if (x_bits <= y_bits) {
-//         return a; // No rounding needed
-//     }
-
-//     uint32_t shift_amount = x_bits - y_bits;
-//     uint32_t bias = 1U << (shift_amount - 1); // Add half of 2^shift_amount for rounding
-//     uint32_t rounded_val = (a + bias) >> shift_amount; // Right shift with rounding
-//     return rounded_val & ((1U << y_bits) - 1); // Ensure it fits in y_bits range
-
-// }
-
-// uint32_t round(uint32_t x, uint32_t q_bits, uint32_t p_bits) {
-
-// 	float q = pow(2,q_bits);
-// 	float p = pow(2,p_bits);
-// 	return fmod((p * x) / (q), p);
-// }
-
-
 uint64_t round(uint64_t x, uint32_t q_bits, uint32_t p_bits) {
     uint64_t q = 1ULL << q_bits;  
     uint64_t p = 1ULL << p_bits;  
@@ -1317,43 +1226,6 @@ uint64_t round(uint64_t x, uint32_t q_bits, uint32_t p_bits) {
     return ((p * x) / q) % p;
 }
 
-
-// void reduce_mod_phi(ZZ_pX& poly) {
-//     int degree_poly = deg(poly);
-//     if (degree_poly < 512) {
-//         return;  // No reduction needed
-//     }
-
-//     for (int i = 512; i <= degree_poly; ++i) {
-//         ZZ_p coeff_i = coeff(poly, i);  // Get the coefficient of X^i
-//         ZZ_p lower_coeff = coeff(poly, i - 512); // Get the coefficient of X^(i-512)
-//         SetCoeff(poly, i - 512, lower_coeff + coeff_i); // Add to X^(i-512)
-//         SetCoeff(poly, i, ZZ_p(0)); // Zero out the coefficient of X^i
-//     }
-//     poly.normalize();  // Clean up trailing zero coefficients
-// }
-
-// void reduce_mod_phi(ZZX& poly, const ZZ& modulus, int reduction_degree) {
-//     int degree_poly = deg(poly);  // Degree of the polynomial
-//     if (degree_poly < reduction_degree) {
-//         return;  // No reduction is needed if degree is below the reduction threshold
-//     }
-
-//     // Iterate through coefficients starting from the degree of the polynomial
-//     for (int i = reduction_degree; i <= degree_poly; ++i) {
-//         ZZ coeff_i = coeff(poly, i);               // Coefficient of X^i
-//         ZZ lower_coeff = coeff(poly, i - reduction_degree); // Coefficient of X^(i-reduction_degree)
- 
-//         // Combine coefficients
-//         ZZ new_lower_coeff = (lower_coeff + coeff_i) % modulus;
-
-//         // Update the coefficients in the polynomial
-//         SetCoeff(poly, i - reduction_degree, new_lower_coeff); // Update X^(i-reduction_degree)
-//         SetCoeff(poly, i, ZZ(0));  // Set the coefficient of X^i to 0
-//     }
-
-//     poly.normalize();  // Clean up trailing zero coefficients
-// }
 
 void reduce_mod_phi(ZZX& poly, const ZZ& modulus, int reduction_degree) {
     long degree_poly = deg(poly);  // Degree of the polynomial
@@ -1432,16 +1304,6 @@ int FPGA_HASH(unsigned char *msg, unsigned char *digest)
 
 int TSet_SetUp(int socket_fd)
 {
-    /*unsigned char *W;
-    unsigned char *TW;
-    unsigned char *stag;
-    unsigned char *stagi;
-    unsigned char *stago;
-    unsigned char *hashin;
-    unsigned char *hashout;
-    
-    int N_words = 0;
-    unsigned int N_max_id_words = 0;*/
     
     N_words = (N_max_ids/N_threads) + ((N_max_ids%N_threads==0)?0:1);
     N_max_id_words = N_words * N_threads;
@@ -1450,69 +1312,8 @@ int TSet_SetUp(int socket_fd)
     
     int datasize = (2*N_l) + 16;
 
-    /*TW = new unsigned char[datasize*N_max_id_words];
-    W = new unsigned char[16*N_max_id_words];
-    stag = new unsigned char[16*N_max_id_words];
-    stagi = new unsigned char[16*N_max_id_words];
-    stago = new unsigned char[16*N_max_id_words];
-    hashin = new unsigned char[16*N_max_id_words];
-    hashout = new unsigned char[64*N_max_id_words];
-
-    //To store TSet Value -- single execution
-    unsigned char TVAL[(datasize+1)];
-    unsigned char TBIDX[2];
-    unsigned char TJIDX[2];
-    unsigned char TLBL[12];
-
-    unsigned int *FreeB;
-    int bidx=0;
-    int len_freeb = 65536;
-    int total_count = 0;
-    int freeb_idx = 0;
-
-
-    FreeB = new unsigned int[len_freeb];
-
-    ifstream eidxdb_file_handle;
-    eidxdb_file_handle.open(eidxdb_file,ios_base::in|ios_base::binary);
-
-    stringstream ss;
-
-    string eidxdb_row;
-    vector<string> eidxdb_data;
-    string eidxdb_row_current;
-    string s;
-
-    ::memset(hashin,0x00,16*N_max_id_words);
-    ::memset(hashout,0x00,64*N_max_id_words);
-    ::memset(TJIDX,0x00,2);
-
-    for(int bc=0;bc<len_freeb;++bc){
-        FreeB[bc] = 0;
-    }*/
-
     int n_rows = 0;
     int n_row_ids = 0;
-
-    /*eidxdb_row.clear();
-    while(getline(eidxdb_file_handle,eidxdb_row)){
-        eidxdb_data.push_back(eidxdb_row);
-        eidxdb_row.clear();
-        n_rows++;
-    }
-
-    eidxdb_file_handle.close();
-
-    int current_row_len = 0;
-
-    unsigned char *tw_local = TW;
-    unsigned char *w_local = W;
-    unsigned char *stag_local = stag;
-    unsigned char *stagi_local = stagi;
-    unsigned char *hashin_local = hashin;
-    unsigned char *hashout_local = hashout;
-    
-    unsigned long id_count = 0;*/
 
     std::string db_in_key = "";
     std::string db_in_val = "";
@@ -1520,134 +1321,15 @@ int TSet_SetUp(int socket_fd)
 	recv_all(socket_fd, (unsigned char*)&n_rows, sizeof(n_rows));
 
     for(int n=0;n<n_rows;++n){
-
-        /*::memset(W,0x00,16*N_max_id_words);
-        ::memset(TW,0x00,datasize*N_max_id_words);
-        ::memset(stag,0x00,16*N_max_id_words);
-        ::memset(stagi,0x00,16*N_max_id_words);
-        ::memset(stago,0x00,16*N_max_id_words);
-        ::memset(hashin,0x00,16*N_max_id_words);
-        ::memset(hashout,0x00,64*N_max_id_words);
-
-        eidxdb_row_current = eidxdb_data.at(n);
-
-        ss.str(std::string());
-        ss << eidxdb_row_current;
-
-        std::getline(ss,s,',');//Get the keyword
-        DB_StrToHex8(W,s.data());//Read the keyword
         
-
-        tw_local = TW;
-        n_row_ids = 0;*/
-		/*
-        
-        recvd n_row_ids from client
-        
-
-        while(std::getline(ss,s,',') && !ss.eof()) {
-            if(!s.empty()){
-                DB_StrToHexN(tw_local,s.data(),datasize);//Read the id
-                tw_local += datasize;
-                n_row_ids++;
-            }
-        }
-
-        ss.clear();
-        ss.seekg(0);
-
-        tw_local = TW;
-
-        N_words = (n_row_ids/N_threads) + ((n_row_ids%N_threads==0)?0:1);
-
-
-        stag_local = stag;
-        w_local = W;
-        kt = encrypt(w_local, sizeof(w_local)/sizeof(w_local[0]), aad, sizeof(aad), KT1, iv_kt, stag_local, tag_kt);
-        stag_local += EVP_MAX_BLOCK_LENGTH;
-        w_local += 16;
-      
-        stag_local = stag;
-        w_local = W;
-        
-
-        //Fill stagi array
-        stagi_local = stagi;
-        for(int nword = 0;nword < N_words;++nword){
-            for(int nid=0;nid<N_threads;nid++){
-                stagi_local[0] = ((nword*N_threads)+nid) & 0xFF; 
-                stagi_local += 16;
-            }
-        }
-        stagi_local = stagi;
-
-     
-        //PRF of stag and i
-        const char* stag1 = reinterpret_cast<const char *> (stag);
-        if(!PKCS5_PBKDF2_HMAC_SHA1(stag, strlen(stag),NULL,0,1000,32,stag1))
-        {
-            printf("Error in key generation\n");
-            exit(1);
-        }
-
-        stagi_local = stagi;
-        hashin_local = hashin;
-        for(int nword = 0;nword < N_words;++nword){
-            k_stag = encrypt(stagi_local, sizeof(stagi_local)/sizeof(stagi_local[0]), aad, sizeof(aad), stag1, iv_stag, hashin_local, tag_stag);
-            stagi_local += 16;
-            hashin_local += 16;
-        }
-        stagi_local = stagi;
-        hashin_local = hashin;
-        
-
-        //Compute Hash
-        hashin_local = hashin;
-        hashout_local = hashout;
-        for(int nword = 0;nword < N_words;++nword){
-            FPGA_HASH(hashin_local,hashout_local);
-            hashin_local += 16;
-            hashout_local += hash_block_size;
-        }
-        hashin_local = hashin;
-        hashout_local = hashout;
-
-
-
-        //Should be done for each stag
-        for(int bc=0;bc<len_freeb;++bc){
-            FreeB[bc] = 0;
-        }
-
-        tw_local = TW;*/
-        
-		recv_all(socket_fd, (unsigned char*)&n_row_ids, sizeof(n_row_ids));
+	recv_all(socket_fd, (unsigned char*)&n_row_ids, sizeof(n_row_ids));
 
         for(int i=0;i<n_row_ids;++i){
-            /*::memcpy(TVAL+1,tw_local,datasize);
            
-
-            TVAL[0] = (i==(n_row_ids-1))?0x01:0x00;
-            for(int j=0;j<datasize+1;++j){
-                // TVAL[j] = hashout[64*i+15+j] ^ TVAL[j];
-                TVAL[j] = 0 ^ TVAL[j];
-            }
-        
-            
-            ::memcpy(TBIDX,(hashout+(64*i)),2);
-            ::memcpy(TLBL,(hashout+(64*i)+2),12);
-
-            freeb_idx = (TBIDX[1] << 8) + TBIDX[0];
-
-            bidx = (FreeB[freeb_idx]++);
-            TJIDX[0] =  bidx & 0xFF;
-            TJIDX[1] =  (bidx >> 8) & 0xFF;*/
-
-            
             db_in_key.clear();
             db_in_val.clear();
 
-			/*
+	    /*
             
             recv key, value pair from client and write that entry to redis
             
@@ -1662,23 +1344,9 @@ int TSet_SetUp(int socket_fd)
 
             redis.set(db_in_key.data(), db_in_val.data());
 
-            /*tw_local += datasize;
-            total_count++;*/
         }
     
     }
- 
-    //std::cout << "Total ID Count: " << total_count << std::endl;
-
-    //delete [] TW;
-    //delete [] W;
-    //delete [] stag;
-    //delete [] stagi;
-    //delete [] stago;
-    //delete [] hashin;
-    //delete [] hashout;
-
-    //delete [] FreeB;
 
     return 0;
 }
@@ -1746,7 +1414,6 @@ int32_t mod_inverse(uint32_t value, uint32_t mod) {
     int32_t x, y;
     int32_t gcd = extended_gcd(value, mod, x, y);
     if (gcd != 1) {
-        // std::cout << "Inverse doesn't exist for " << value << " modulo " << mod << std::endl;
         return -1; 
     } else {
         return (uint16_t)(x % mod + mod) % mod;  
@@ -1768,10 +1435,6 @@ int main()
     unsigned char *WC;
     unsigned char *YID_char;
 
-    // uint32_t *XTAG; 
-	// uint32_t *XTAG_check;
-	// uint32_t *XTOKEN; 
-
 	uint64_t *XTAG; 
 	uint64_t *XTAG_check;
 	uint64_t *XTOKEN;   
@@ -1790,10 +1453,6 @@ int main()
     WC = new unsigned char[N_max_id_words*16];                              //IDs with counter value (for computing randomness R) 
     EC = new unsigned char[N_max_id_words*16];                              //Encrypted IDs
     bhash = new unsigned char[bhash_block_size];
-    
-    // XTAG = new uint32_t[N_max_id_words*N_l];
-	// XTAG_check = new uint32_t[N_max_id_words*N_l];
-	// XTOKEN = new uint32_t[N_max_id_words*N_l];
 
 	XTAG = new uint64_t[N_max_id_words*N_l];
 	XTAG_check = new uint64_t[N_max_id_words*N_l];
@@ -1841,10 +1500,6 @@ int main()
     ::memset(ID,0x00,N_max_id_words*16);
     ::memset(KE,0x00,EVP_MAX_BLOCK_LENGTH);
     ::memset(KE_temp,0x00,16);
-	
-    // ::memset(XTAG,0x00,N_max_id_words*N_l);
-	// ::memset(XTAG_check,0x00,N_max_id_words*N_l);
-	// ::memset(XTOKEN,0x00,N_max_id_words*N_l);
 
 	::memset(XTAG,0x00,N_max_id_words*N_l);
 	::memset(XTAG_check,0x00,N_max_id_words*N_l);
@@ -1859,17 +1514,10 @@ int main()
     ::memset(YID_char,0x00,N_max_id_words*2*N_l);
     ::memset(YID,0x00,N_max_id_words*N_l);
     
-
-    ///////////////////////////////////////////////////////////
-    
     unsigned char *w_local = W;
     unsigned char *id_local = ID;
     unsigned char *ke_local = KE;
     unsigned char *ke_temp_local = KE_temp;
-    
-    // uint32_t *xtag_local = XTAG;
-	// uint32_t *xtag_local_check = XTAG_check;
-	// uint32_t *xtoken_local = XTOKEN;
 
 	uint64_t *xtag_local = XTAG;
 	uint64_t *xtag_local_check = XTAG_check;
@@ -1888,10 +1536,7 @@ int main()
     int n_rows = 0;
     int n_row_ids = 0;
 
-
-	///////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	// CONNECTION VARIABLES ----------------------------------------------------------------------------------------------
+    // CONNECTION VARIABLES ----------------------------------------------------------------------------------------------
     int portno = 8080;
     int sockfd, newsockfd;
     socklen_t clilen;
@@ -1937,539 +1582,16 @@ int main()
 
 	cout << "Starting program..." << endl;
 
-	//ReadConfAll("../configuration/db6k.conf");
-
     UIDX = new unsigned char[16*N_max_ids];
     ::memset(UIDX,0x00,16*N_max_ids);
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     Sys_Init();
 
-
-
-
-    /*rawdb_row.clear();
-    while(getline(rawdb_file_handle,rawdb_row)){
-        rawdb_data.push_back(rawdb_row);
-        rawdb_row.clear();
-        n_rows++;
-    }
-
-    cout << "Number of Keywords: " << n_rows << endl;
-
-    rawdb_file_handle.close();*/
-
     auto start_time = std::chrono::high_resolution_clock::now();
 
-
-    /*//  Key Generation  //
-
-    unsigned char seed[16] = {0x56,0x37,0xca,0x94,0xd5,0xe0,0xad,0x62,0x73,0x7c,0xba,0x48,0x8d,0x2d,0x4d,0xde};
-    size_t n_keygen;
-    size_t tlen_keygen = 90112;
-    size_t tlen_sign = 178176;
-    unsigned logn_keygen = 9;
-    int8_t *f, *g, *F, *G;
-    uint16_t *h, *hm, *h2, *hm2, *h_mont;
-    int16_t *sig_keygen, *s1_keygen;
-    uint8_t *tt_keygen, *tt_sign, *temp_sign;
-    inner_shake256_context sc_keygen;
-    fpr *expanded_key;             
-
-    
-
-    inner_shake256_init(&sc_keygen);
-    inner_shake256_inject(&sc_keygen, seed, sizeof(seed));
-    inner_shake256_flip(&sc_keygen);
-    
-
-    temp_sign = xmalloc(tlen_sign);
-    h_mont = (uint16_t *)temp_sign;
-    n_keygen = (size_t)1 << logn_keygen;
-
-    f = xmalloc(tlen_keygen);
-    g = f + n_keygen;
-    F = g + n_keygen;
-    G = F + n_keygen;
-    h = (uint16_t *)(G + n_keygen);
-    h2 = h + n_keygen;
-    hm = h2 + n_keygen;
-    sig_keygen = (int16_t *)(hm + n_keygen);
-    s1_keygen = sig_keygen + n_keygen;
-    tt_keygen = (uint8_t *)(s1_keygen + n_keygen);
-    tt_sign = (uint8_t *)(s1_keygen + n_keygen);
-    if (logn_keygen == 1) {
-        tt_keygen += 4;
-        tt_sign += 4;
-    }
-    for (int i = 0; i < 12; i ++) {
-        Zf(keygen)(&sc_keygen, f, g, F, G, h, logn_keygen, tt_keygen);
-    }
-    
-
-    //Public key h in NTT-Montgomery Form
-    ::memcpy(h_mont, h, n_keygen * sizeof *h_mont);
-
-	int16_t h_temp[512];
-	for(int i=0; i<512;i++)
-	{
-		h_temp[i] = h_mont[i];
-	}
-    
-    //Expanded private key for NTT operations
-    expanded_key = (fpr *)tt_sign;
-    tt_sign = (uint8_t *)expanded_key + (8 * logn_keygen + 40) * n_keygen;
-    Zf(expand_privkey)(expanded_key, f, g, F, G, logn_keygen, tt_sign);
-
-		
-    
-    for(unsigned int n1=0; n1<n_rows; ++n1) 
-    {
-        
-        ::memset(ID,0x00,N_max_id_words*16);
-        ::memset(KE,0x00,EVP_MAX_BLOCK_LENGTH);
-        ::memset(KE_temp,0x00,16);
-        ::memset(EC,0x00,N_max_id_words*16);
-
-        
-        rawdb_row_current = rawdb_data.at(n1);
-
-        ss.str(std::string());
-        ss << rawdb_row_current;
-        std::getline(ss,s,',');             			// Read inverted index row
-
-
-        
-        DB_StrToHex8(W,s.data());           			//Read the keyword        
-        id_local = ID;
-
-        n_row_ids = 0;                                  //For row id count
-        while(std::getline(ss,s,',') && !ss.eof()) {
-            if(!s.empty()){
-                DB_StrToHex8(id_local,s.data());        //Read the id
-                
-                id_local += 16;
-                n_row_ids++;
-            }
-        }
-        ss.clear();
-        ss.seekg(0);
-
-        id_local = ID;              //Set local id pointer to the beginning of the array
-
-        
-       
-        //Generate KE from W and KS
-        /* Since each W is 8B output of AES-256 is 16B and KE needs to be 32B to be used as a key, thus we run the loop
-        four times to generate a block of 8B four times and concatenate in KE to form a block of 32B */                            
-        
-        /*for(int i=0; i<4;i++) {
-
-            ::memset(KE_temp,0x00,16);
-
-            if(!PKCS5_PBKDF2_HMAC_SHA1(KS, strlen(KS),NULL,0,1000,32,KS1))
-            {
-                printf("Error in key generation\n");
-                exit(1);
-            }
-
-            w_local = W;
-            ke_temp_local = KE_temp;
-            ke = encrypt(w_local, sizeof(w_local)/sizeof(w_local[0]), aad, sizeof(aad), KS1, iv_ks, ke_temp_local, tag_ks);       
-            w_local = W;
-            ke_temp_local = KE_temp;
-
-            ::memcpy(KE+(8*i),KE_temp,0x08);
-
-        }       
-
-        //Generate random polynomial wrt XW from Falcon specifications
-        TEMPALLOC union {
-            uint16_t hm_xw[512];
-        } r_xw;
-        TEMPALLOC inner_shake256_context sc_xw;
-
-        inner_shake256_init(&sc_xw); 		    
-        inner_shake256_inject(&sc_xw,W, 16);	
-        inner_shake256_flip(&sc_xw);
-        Zf(hash_to_point_vartime)(&sc_xw, r_xw.hm_xw, 9);
-
-
-		
-		uint64_t xw[512];
-        size_t n_xw = (size_t)1 << 9;
-
-        for(int i=0; i<512; i++){
-            xw[i] = (r_xw.hm_xw[i] << 14) % q_l;
-		}
-
-        
-        // Generate random mask for each keyword
-        w_local = W;
-		int c = 0;
-        unsigned char r[16];
-        for(unsigned int nword=0; nword<n_row_ids; nword++)
-        {
-            int kr = encrypt(w_local, sizeof(w_local)/sizeof(w_local[0]), aad, sizeof(aad), KZ1, iv_kz, r, tag_kz);
-        }
-        
-        int32_t temp = r;
-        memcpy(&temp, r, sizeof(uint32_t));
-    
-        srand(temp);
-        int16_t mask = (rand()%p_l);
-
-        int32_t x, y;
-        int32_t gcd = extended_gcd(mask, p_l, x, y);
-        
-		if (gcd != 1) {
-            mask += 1;
-        }
-
-        int16_t inv_mask = mod_inverse(mask,p_l);
-
-		if((mask * inv_mask)%p_l == 1){
-			c++;
-		}
-		
-		else{
-			 
-			mask = (rand()%p_l);
-
-			int32_t x, y;
-			int32_t gcd = extended_gcd(mask, p_l, x, y);
-			
-			if (gcd != 1) {
-				mask += 1;
-			}
-
-			inv_mask = mod_inverse(mask,p_l);
-			if((mask * inv_mask)%p_l == 1){
-				c++;		
-			}
-		}
-       
-
-	
-		xid_local = XID;
-        yid_local = YID;
-        id_local = ID;
-        xtag_local = XTAG;
-		xtoken_local = XTOKEN;
-		xtag_local_check = XTAG_check;
-        for(unsigned int nword=0; nword<n_row_ids; nword++)
-        {
-
-            unsigned char array_xid[16];
-            inner_shake256_context sc_xid1;
-            size_t tlen_xid1 = 90112;
-            int32_t *f_xid1 = xmalloc(tlen_xid1);
-            int8_t logn_xid1 = 9;
-            size_t n_xid1 = (size_t)1 << logn_xid1;
-            uint16_t *hm_xid  = (uint16_t *) (f_xid1 +6*n_xid1);
-            uint32_t *hm_xid_check = f_xid1 +6*n_xid1;
-
-
-
-            std::memcpy(array_xid,id_local,16);
-            inner_shake256_init(&sc_xid1); 		                            
-            inner_shake256_inject(&sc_xid1, id_local, 16);	
-            inner_shake256_flip(&sc_xid1);
-            Zf(hash_to_point_vartime)(&sc_xid1, hm_xid, logn_xid1);
-            
-            
-            // Signature Computation
-            Zf(sign_tree)(sig_keygen, &sc_xid1, expanded_key, hm_xid, logn_keygen, tt_sign);  
-
-			
-            int16_t tt_s1[512];
-			int16_t tt_s1_temp[512];
-			int16_t tt_s2[512];
-            int16_t tt_s2_temp[512]; 
-			int16_t s2h[512]; 
-			int16_t tt_xid[512]; 
-			int16_t xid_temp[512];
-
-        
-            for (int u = 0; u < 512; u ++) {
-				tt_s1[u] = sig_keygen[u];			//store s1
-				tt_s2[u] = sig_keygen[u];			//store s2
-				tt_xid[u] = hm_xid[u]; 				//store xid'
-            }
-			
-	
-			ZZ q = power2_ZZ(45);
-
-			ZZX tt_s1_NTL, tt_s1_temp_NTL, tt_s2_NTL, yid_NTL, tt_xid_NTL, xid_NTL, h_temp_NTL, s2h_NTL;
-
-			for(int i=0; i<512; i++){ 
-				SetCoeff(h_temp_NTL, i, ZZ(h_temp[i]));
-				SetCoeff(tt_s1_temp_NTL, i, ZZ(sig_keygen[i]));
-				SetCoeff(tt_s2_NTL, i, ZZ(sig_keygen[i]));
-				SetCoeff(yid_NTL, i, ZZ(sig_keygen[i]));
-				SetCoeff(tt_xid_NTL, i, ZZ(hm_xid[i]));
-			}
-
-		
-			s2h_NTL = tt_s1_temp_NTL * h_temp_NTL;
-
-			for(int i=0; i<=deg(s2h_NTL); i++){ 
-				int64_t x = conv<int64_t>((coeff(s2h_NTL, i)));
-				x = (x % q_l + q_l) % q_l;
-				// SetCoeff(lhs_final, i, x);
-				SetCoeff(s2h_NTL, i, conv<ZZ>(x));
-			}
-			reduce_mod_phi(s2h_NTL, q, N_l);
-			
-
-			tt_s1_NTL = s2h_NTL - tt_xid_NTL;
-
-			xid_NTL = tt_s1_NTL + tt_xid_NTL;
-
-
-			// if(s2h_NTL != xid_NTL){
-			// 	cout << "NO" << endl;
-			// 	exit(1);
-			// }
-			
-
-            for(int i = 0; i < 512; i++){
-                tt_s2_temp[i] = tt_s2[i];
-                yid_local[i] = (tt_s2[i] * inv_mask) % p_l;		// store masked s2 in yid
-	     	}
-
-
-		
-            for(int u=0; u<512; u++) {
-				xid_temp[u] = conv<int64_t>((coeff(xid_NTL, u)));
-				xid_local[u] = xid_temp[u] % p_l;					// xid = -s1 + xid'
-            }
-
-
-			/*  (s2.h.xw) mod q = LHS of SIS equation mod q --> should be equal to (xid . xw) mod q  */
-			
-			/*ZZ p1 = power2_ZZ(40);
-		
-
-			ZZX xw_NTL, temp_xid, LHS_q_NTLL;
-			ZZX lhs_final, rhs_final, xtag, xtoken;
-
-			for(int i=0; i<512; i++){ 
-				SetCoeff(xw_NTL, i, ZZ(xw[i]));
-			}
-
-			
-			for (long i = 0; i <=deg(xid_NTL); i++) {
-				NTL::ZZ coeff = NTL::coeff(xid_NTL, i);
-				coeff = (coeff % q + q) % q;
-				NTL::SetCoeff(xid_NTL, i, coeff);
-			}
-
-
-			xtoken = h_temp_NTL * xw_NTL;
-			for(long i=0; i<=deg(xtoken); i++){ 
-				NTL::ZZ coeff = NTL::coeff(xtoken, i);
-				coeff = (coeff % q + q) % q; 
-				NTL::SetCoeff(xtoken, i, coeff);
-			}
-			reduce_mod_phi(xtoken, q, N_l);
-
-			
-			lhs_final = yid_NTL * xtoken;
-			for(long i=0; i<=deg(lhs_final); i++){ 
-				NTL::ZZ coeff = NTL::coeff(lhs_final, i);
-				coeff = (coeff % q + q) % q; 
-				NTL::SetCoeff(lhs_final, i, coeff);
-			}
-			reduce_mod_phi(lhs_final, q, N_l);
-
-
-			xtag = xid_NTL * xw_NTL;
-			for(long i=0; i<=deg(xtag); i++){ 
-				NTL::ZZ coeff = NTL::coeff(xtag, i);
-				coeff = (coeff % q + q) % q; 
-				NTL::SetCoeff(xtag, i, coeff);
-			}
-			reduce_mod_phi(xtag, q, N_l);
-
-			rhs_final = xtag;
-
-			lhs_final.normalize();
-			rhs_final.normalize();
-
-			
-			for(int i = 0; i <= deg(rhs_final); i++){
-				if(lhs_final[i] != rhs_final[i]){
-					cout << "Problem is equation mod q\n";
-					exit(1);
-				}
-			}
-
-			
-			// Check rounded version
-
-			for(int i = 0; i <= deg(xtag); i++){
-				xtag_local[i] = conv<int64_t>((coeff(xtag, i)) >> (45 - 5));
-				xtag_local[i] = xtag_local[i] % p;
-				SetCoeff(xtag, i, xtag_local[i]);
-			}
-
-			for(int i = 0; i <= deg(xtoken); i++){
-				xtoken_local[i] = conv<int64_t>((coeff(xtoken, i)) >> (45 - 40));
-				xtoken_local[i] = xtoken_local[i] % p_l_dash;
-				SetCoeff(xtoken, i, xtoken_local[i]);
-			}
-
-			lhs_final = (yid_NTL * xtoken); 
-			for(int i=0; i<=deg(lhs_final); i++){ 
-				int64_t x = conv<int64_t>((coeff(lhs_final, i)));
-				x = x % p_l_dash;
-				SetCoeff(lhs_final, i, x);
-			}
-			reduce_mod_phi(lhs_final, p1, N_l);
-
-
-			for(int i = 0; i <= deg(lhs_final); i++){
-				xtoken_local[i] = conv<int64_t>((coeff(lhs_final, i)));
-				xtoken_local[i] = xtoken_local[i] >> (40 - 5);
-				xtoken_local[i] = xtoken_local[i] % p;
-				SetCoeff(lhs_final, i, xtoken_local[i]);
-			}
-			rhs_final = xtag;
-
-	
-			bool wrong_match = false;
-			for(int i = 0; i <= deg(lhs_final); i++){
-				if(lhs_final[i] != rhs_final[i]){
-						cout << "Problem with double rounding \n";
-						cout << i << " " << lhs_final[i] << " " << rhs_final[i] << endl;
-						wrong_match = true; 
-				}
-			}	
-			
-			
-
-            yid_local += N_l;
-            xid_local += N_l;
-            xtag_local += N_l;
-			xtoken_local += N_l;
-			xtag_local_check += N_l;
-            
-            
-            id_local += 16;
-			
-        
-        }
-        xid_local = XID;
-        yid_local = YID;
-        id_local = ID;
-        xtag_local = XTAG;
-		xtoken_local = XTOKEN;
-		xtag_local_check = XTAG_check;
-
-		
-        
-        //AES Encryption of id using KE
-        const char* KE1 = reinterpret_cast<const char *> (KE);
-    	if(!PKCS5_PBKDF2_HMAC_SHA1(KE, strlen(KE),NULL,0,1000,32,KE1))
-        {
-            printf("Error in key generation\n");
-            exit(1);
-        } 
-        
-        id_local = ID;
-        ec_local = EC;
-        for(unsigned int nword=0; nword<n_row_ids; nword++)
-        {
-            kec = encrypt(id_local, sizeof(id_local)/sizeof(id_local[0]), aad, sizeof(aad), KE1, iv_ec, ec_local, tag_ec);
-            id_local += sym_block_size;
-            ec_local += 16;
-        }
-        id_local = ID;
-        ec_local = EC;
-
-
-
-        yid_local = YID;
-        yid_char_local = YID_char;
-        for(int n=0; n<n_row_ids; n++){   
-            for(int k=0; k<N_l; k++){
-                    yid_char_local[2*k] = static_cast<unsigned char>(yid_local[k] & 0xFF);          
-                    yid_char_local[2*k + 1] = static_cast<unsigned char>((yid_local[k] >> 8) & 0xFF); 
-            }
-            
-            yid_local += N_l;
-            yid_char_local += 2*N_l;
-        }
-        yid_local = YID;
-        yid_char_local = YID_char;
-
-
-        eidxdb_file_handle << DB_HexToStr8(W) << ",";            
-        for(int n_eidx=0;n_eidx < n_row_ids;++n_eidx){
-            eidxdb_file_handle << DB_HexToStr_N(YID_char+(2*N_l*n_eidx),2*N_l) << DB_HexToStr_N(EC+(16*n_eidx),16) + ",";
-        }
-       
-        eidxdb_file_handle << endl;
-        
-       
-        
-        xtag_local = XTAG;
-        for(int i=0;i<n_row_ids;++i)
-        {
-
-            ::memset(bhash,0x00,bhash_block_size);
-            ::memset(bf_indices,0x00,N_HASH);
-
-            unsigned char xtag_char[2*N_l];
-            ::memset(xtag_char,0x00,2*N_l);
-
-
-            unsigned char *xtag_char_local = xtag_char;
-            for(int k=0; k<N_l; k++){
-                
-                xtag_char[2*k] = static_cast<unsigned char>(xtag_local[k] & 0xFF);         
-                xtag_char[2*k + 1] = static_cast<unsigned char>((xtag_local[k] >> 8) & 0xFF);    
-            }
-
-            xtag_char_local = xtag_char;
-
-
-            BLOOM_HASH(xtag_char,bhash);
-
-			xtag_file_handle << DB_HexToStr_N(bhash,bhash_block_size) << endl << endl;
-
-
-            for(int j=0;j<N_HASH;++j){
-                bf_indices[j] = BFIdxConv(bhash+(64*j),N_BF_BITS);
-
-				xtag_file_handle_check << bf_indices[j] << " ";
-            }
-
-            BloomFilter_Set(BF, bf_indices);
-
-			xtag_file_handle_check << endl << endl;
-
-            xtag_local += N_l;
-        }
-        
-        xtag_local = XTAG;
-        xtag_file_handle << std::endl << "-----------" << std::endl;
-		xtag_file_handle_check << std::endl << "-----------" << std::endl;
-
-        
-    }
-
-    xtag_file_handle.close();
-	xtag_file_handle_check.close();
-    eidxdb_file_handle.close();*/
-    
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    
     cout << "TSet SetUp Starting!" << endl << endl;
 
-    TSet_SetUp(newsockfd); ///////////////////change
+    TSet_SetUp(newsockfd);
 
     
     cout << "TSet SetUp Done!" << endl;
@@ -2477,21 +1599,16 @@ int main()
     auto stop_time = chrono::high_resolution_clock::now();
 
     std::cout << "[SERVER] Going to receive bloomfilter file from client..." << std::endl;
-    // BloomFilter_WriteBFtoFile(bloomfilter_file, BF); //Store bloom filter in file
 
     receive_file(newsockfd, bloomfilter_file.data());
 
     std::cout<< "[SERVER] Bloom filter received and saved"<<std::endl;
-	/////////////////////////////////////////////////////////////////////////////////////////////
-
 
     Sys_Clear();
 	delete [] UIDX;
 
-	////////////////////////////////////////////////////////////////////////////////////////////
 	close(newsockfd);
     close(sockfd);
-	///////////////////////////////////////////////////////////////////////////////////////////
 
     
     auto time_elapsed = chrono::duration_cast<chrono::microseconds>(stop_time - start_time).count();
@@ -2500,4 +1617,3 @@ int main()
     cout << "Program finished!" << endl;
     return 0;
 }   
-
