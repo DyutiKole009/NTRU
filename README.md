@@ -104,4 +104,17 @@ and then in client,
 ./oqxt-falcon_search_client
 ```
 
-After all queries are done, run `client/results/evaluate_correctness.py` to verify if the server returned correct docids.
+## Visualization of the Work
+
+### Client Side View after Setup Phase
+<img src="https://drive.google.com/uc?export=view&id=1SGU9ra1NIC4Sh2thIrnBuSS6jVSCgYF5" width="400">
+
+### Server Side View after Setup Phase
+<img src="https://drive.google.com/uc?export=view&id=1rZiI5vO1qW2IgCprh470YvtAe_9fRAXw" width="400">
+
+### Client Side View after Search Phase
+<img src="https://drive.google.com/uc?export=view&id=1aBum3nL4xkGFa9fs2OsZJ_U2SJ62cyrX" width="400">
+
+### Server Side View after Search Phase
+<img src="https://drive.google.com/uc?export=view&id=1h75DA95xesIhIa9mqEV6uWeKzU4fNIDu" width="400">
+<img src="https://drive.google.com/uc?export=view&id=1Uog4KgdiL7wTVP4yBMymm4ZUtiLCvhQy" width="400">
