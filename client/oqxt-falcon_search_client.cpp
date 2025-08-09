@@ -2189,7 +2189,8 @@ int main()
             continue;
         }
 
-	int kw_id_a = std::stoi(kw_a_str);
+		// To be done if the queries of input file are in decimal format ...................................
+	    /*int kw_id_a = std::stoi(kw_a_str);
         int kw_id_b = std::stoi(kw_b_str);
 
         std::stringstream hex_a, hex_b;
@@ -2197,8 +2198,11 @@ int main()
         hex_b << std::uppercase << std::setfill('0') << std::setw(8) << std::hex << kw_id_b;
 
         query.push_back(hex_a.str());
-        query.push_back(hex_b.str());
-
+        query.push_back(hex_b.str());*/
+		
+		// When the queries of input file are in hexadecimal format ...................................
+		query.push_back(kw_a.str);
+        query.push_back(kw_b.str);
 
         if(query.size() < n_q_kw) continue;
 
@@ -2316,3 +2320,4 @@ int main()
 
     return 0;
 }
+
